@@ -139,3 +139,21 @@ int thread_join()
 
   return result;
 }
+
+void lock_init(lock_t *lock)
+{
+  lock->ticket = 0;
+  lock->turn = 0;
+}
+
+void lock_acquire(lock_t *lock)
+{
+  int turn = __atomic_fetch_add(&lock->ticket, 1);
+  while(lock->turn != turn) //spin lock
+  {}
+}
+
+void lock_release(lock_t *lock)
+{
+  __atomic_add_fetch(&lock->turn, 1);
+}
