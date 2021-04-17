@@ -549,6 +549,8 @@ clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
   struct proc *np;
   struct proc *curproc = myproc();
 
+  uint ustack[3 + 1];
+
   char* stack = in_stack;
 
   //checking stack pointer
@@ -572,15 +574,13 @@ clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 
-  char *newstack = stack + PGSIZE - 4;
-  uint arg_1 = (uint)arg1;
-  uint arg_2 = (uint)arg2;
-  uint ret_addr = 0xffffffff;
-  copyout(curproc->pgdir, (uint)newstack, &arg_1, sizeof(arg_1));
-  newstack -= 4;
-  copyout(curproc->pgdir, (uint)newstack, &arg_2, sizeof(arg_2));
-  newstack -= 4;
-  copyout(curproc->pgdir, (uint)newstack, &ret_addr, sizeof(ret_addr));
+  char *newstack = stack + PGSIZE;
+  ustack[0] = (uint)arg1;
+  ustack[1] = (uint)arg2;
+  ustack[2] = 0xffffffff;
+  ustack[3] = 0;
+  newstack -= (3 + 1) * 4;
+  copyout(curproc->pgdir, (uint)newstack, ustack, (3 + 1) * 4);
 
   np->tf->esp = (uint)newstack;
   np->tf->eip = (uint)fn;
