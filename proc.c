@@ -264,6 +264,15 @@ exit(void)
 
   acquire(&ptable.lock);
 
+  if (curproc->parent != 0)
+  {
+    struct proc* parent = curproc->parent;
+    if (curproc->pgdir == parent->pgdir)
+    {
+      parent->threadcount -= 1;
+    }
+  }
+
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
@@ -301,7 +310,7 @@ wait(void)
       if (p->pgdir == curproc->pgdir)
         continue;
       havekids = 1;
-      if(p->state == ZOMBIE){
+      if(p->state == ZOMBIE && p->threadcount == 0){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -641,7 +650,7 @@ join(void **stack)
         *stack = p->stack;
         p->stack = 0;
         p->threadcount = 0;
-        curproc->threadcount -= 1;
+        //curproc->threadcount -= 1;
         release(&ptable.lock);
         return pid;
       }
