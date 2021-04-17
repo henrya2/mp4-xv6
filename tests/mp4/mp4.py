@@ -20,7 +20,7 @@ for testname in '''clone_basic clone_parent_sleep clone_child_sleep clone_argume
       'name': testname,
       'tester': 'ctests/' + testname + '.c',
       'description': get_description(testname),
-      'timeout': 10 if testname not in ['threads_many', 'lock_basic', 'lock_setup'] else 30,
+      'timeout': 10 if testname not in ['threads_many', 'lock_basic', 'lock_setup', 'threads_zombies'] else 30,
       'point_value': 6 if testname in ['clone_basic', 'clone_parent_sleep', 
           'clone_child_sleep', 'clone_arguments', 'clone_bad', 
           'clone_return'] else 8
