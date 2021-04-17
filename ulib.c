@@ -142,18 +142,20 @@ int thread_join()
 
 void lock_init(lock_t *lock)
 {
+  __sync_synchronize();
   lock->ticket = 0;
   lock->turn = 0;
+  __sync_synchronize();
 }
 
 void lock_acquire(lock_t *lock)
 {
   int turn = __sync_fetch_and_add(&lock->ticket, 1);
-  while(lock->turn != turn) 
+  while(__sync_fetch_and_add(&lock->turn, 0) != turn) 
     ; // spin
 }
 
 void lock_release(lock_t *lock)
 {
-  lock->turn += 1;
+  __sync_fetch_and_add(&lock->turn, 1);
 }
