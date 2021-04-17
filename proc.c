@@ -14,6 +14,8 @@ struct {
 
 static struct proc *initproc;
 
+struct spinlock memlock;
+
 int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
@@ -24,6 +26,8 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+
+  initlock(&memlock, "memlock");
 }
 
 // Must be called with interrupts disabled
@@ -173,6 +177,14 @@ growproc(int n)
       return -1;
   }
   curproc->sz = sz;
+
+  // update all child threads
+  struct proc *process;
+  for(process = ptable.proc; process < &ptable.proc[NPROC]; process++) {
+    if (curproc != process && process->pgdir == curproc->pgdir)
+      process->sz = sz;
+  }
+
   switchuvm(curproc);
   return 0;
 }
@@ -289,7 +301,7 @@ wait(void)
       if (p->pgdir == curproc->pgdir)
         continue;
       havekids = 1;
-      if(p->state == ZOMBIE && p->threadcount == 0){
+      if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -616,7 +628,7 @@ join(void **stack)
       if (p->pgdir != curproc->pgdir)
         continue;
       havekids = 1;
-      if(p->state == ZOMBIE && p->threadcount == 0){
+      if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
