@@ -278,7 +278,7 @@ exit(void)
 
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->parent == curproc){
+    if(p->parent == curproc && p->parent->pgdir != curproc->pgdir){
       p->parent = initproc;
       if(p->state == ZOMBIE)
         wakeup1(initproc);
