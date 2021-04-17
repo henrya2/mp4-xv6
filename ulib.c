@@ -150,10 +150,10 @@ void lock_acquire(lock_t *lock)
 {
   int turn = __sync_fetch_and_add(&lock->ticket, 1);
   while(lock->turn != turn) 
-  {}
+    ; // spin
 }
 
 void lock_release(lock_t *lock)
 {
-  __sync_add_and_fetch(&lock->turn, 1);
+  lock->turn += 1;
 }
