@@ -549,7 +549,7 @@ clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
   struct proc *np;
   struct proc *curproc = myproc();
 
-  uint ustack[3 + 1];
+  uint ustack[3];
 
   char* stack = in_stack;
 
@@ -578,9 +578,8 @@ clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
   ustack[0] = 0xffffffff;
   ustack[1] = (uint)arg1;
   ustack[2] = (uint)arg2;
-  ustack[3] = 0;
-  newstack -= (3 + 1) * 4;
-  copyout(curproc->pgdir, (uint)newstack, ustack, (3 + 1) * 4);
+  newstack -= (3) * 4;
+  copyout(curproc->pgdir, (uint)newstack, ustack, (3) * 4);
 
   np->tf->esp = (uint)newstack;
   np->tf->eip = (uint)fn;
