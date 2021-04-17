@@ -148,12 +148,12 @@ void lock_init(lock_t *lock)
 
 void lock_acquire(lock_t *lock)
 {
-  int turn = __atomic_fetch_add(&lock->ticket, 1);
-  while(lock->turn != turn) //spin lock
+  int turn = __sync_fetch_and_add(&lock->ticket, 1);
+  while(lock->turn != turn) 
   {}
 }
 
 void lock_release(lock_t *lock)
 {
-  __atomic_add_fetch(&lock->turn, 1);
+  __sync_add_and_fetch(&lock->turn, 1);
 }
