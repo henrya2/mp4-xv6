@@ -575,9 +575,9 @@ clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
   np->tf->eax = 0;
 
   char *newstack = stack + PGSIZE;
-  ustack[0] = (uint)arg1;
-  ustack[1] = (uint)arg2;
-  ustack[2] = 0xffffffff;
+  ustack[0] = 0xffffffff;
+  ustack[1] = (uint)arg1;
+  ustack[2] = (uint)arg2;
   ustack[3] = 0;
   newstack -= (3 + 1) * 4;
   copyout(curproc->pgdir, (uint)newstack, ustack, (3 + 1) * 4);
