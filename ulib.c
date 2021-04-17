@@ -4,6 +4,10 @@
 #include "user.h"
 #include "x86.h"
 
+#ifndef PGSIZE
+#define PGSIZE 0x1000
+#endif
+
 char*
 strcpy(char *s, const char *t)
 {

@@ -2,8 +2,6 @@
 #define NULL ((void*)0)
 #endif
 
-#define PGSIZE 4096
-
 struct stat;
 struct rtcdate;
 
