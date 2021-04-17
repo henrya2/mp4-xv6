@@ -2,6 +2,8 @@
 #define NULL ((void*)0)
 #endif
 
+#define PGSIZE 4096
+
 struct stat;
 struct rtcdate;
 
@@ -44,3 +46,6 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+int thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2);
+int thread_join();

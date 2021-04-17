@@ -104,3 +104,34 @@ memmove(void *vdst, const void *vsrc, int n)
     *dst++ = *src++;
   return vdst;
 }
+
+int thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2)
+{
+  char* newptr = malloc(PGSIZE * 2 + 4);
+  char* stack = newptr + 4;
+
+  if ((uint)stack % PGSIZE != 0) 
+  {
+    stack = stack + (PGSIZE - ((uint)stack % PGSIZE));
+  }
+
+  uint* storeptr = (uint*)(stack - 4);
+  *storeptr = (uint)newptr;
+
+  return clone(start_routine, arg1, arg2, stack);
+}
+
+int thread_join()
+{
+  void* stack = 0;
+  int result = 0;
+
+  result = join(&stack);
+  if (result != -1 && stack != 0)
+  {
+    uint* storeptr = (uint*)stack - 1;
+    free(*storeptr);
+  }
+
+  return result;
+}
