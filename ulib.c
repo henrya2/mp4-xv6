@@ -130,7 +130,7 @@ int thread_join()
   if (result != -1 && stack != 0)
   {
     uint* storeptr = (uint*)stack - 1;
-    free(*storeptr);
+    free((void*)(*storeptr));
   }
 
   return result;
