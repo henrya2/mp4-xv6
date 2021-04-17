@@ -575,11 +575,12 @@ clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
   char *newstack = stack + PGSIZE - 4;
   uint arg_1 = (uint)arg1;
   uint arg_2 = (uint)arg2;
+  uint ret_addr = 0xffffffff;
   copyout(curproc->pgdir, (uint)newstack, &arg_1, sizeof(arg_1));
   newstack -= 4;
   copyout(curproc->pgdir, (uint)newstack, &arg_2, sizeof(arg_2));
   newstack -= 4;
-  copyout(curproc->pgdir, (uint)newstack, (void*)0xffffffff, sizeof(int));
+  copyout(curproc->pgdir, (uint)newstack, &ret_addr, sizeof(ret_addr));
 
   np->tf->esp = (uint)newstack;
   np->tf->eip = (uint)fn;
