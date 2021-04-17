@@ -91,6 +91,9 @@ found:
 
   release(&ptable.lock);
 
+  p->stack = 0;
+  p->threadcount = 0;
+
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
@@ -283,8 +286,10 @@ wait(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
+      if (p->pgdir == curproc->pgdir)
+        continue;
       havekids = 1;
-      if(p->state == ZOMBIE){
+      if(p->state == ZOMBIE && p->threadcount == 0){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -295,6 +300,10 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+
+        p->stack = 0;
+        p->threadcount = 0;
+
         release(&ptable.lock);
         return pid;
       }
@@ -531,4 +540,109 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int
+clone(void(*fn)(void *, void *), void *arg1, void *arg2, void *in_stack)
+{
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  char* stack = in_stack;
+
+  //checking stack pointer
+  if(((uint)stack % PGSIZE) != 0)
+    return -1;
+
+  if((curproc->sz - (uint)stack) < PGSIZE)
+    return -1;
+
+  // Allocate process.
+  if((np = allocproc()) == 0)
+    return -1;
+
+  np->stack = stack;
+  np->pgdir = curproc->pgdir;
+
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+
+  // Clear %eax so that fork returns 0 in the child.
+  np->tf->eax = 0;
+
+  char *newstack = stack + PGSIZE - 4;
+  uint arg_1 = (uint)arg1;
+  uint arg_2 = (uint)arg2;
+  copyout(curproc->pgdir, (uint)newstack, &arg_1, sizeof(arg_1));
+  newstack -= 4;
+  copyout(curproc->pgdir, (uint)newstack, &arg_2, sizeof(arg_2));
+  newstack -= 4;
+  copyout(curproc->pgdir, (uint)newstack, (void*)0xffffffff, sizeof(int));
+
+  np->tf->esp = (uint)newstack;
+  np->tf->eip = (uint)fn;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  pid = np->pid;
+  np->state = RUNNABLE;
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  curproc->threadcount += 1;
+
+  return pid;
+}
+
+int 
+join(void **stack)
+{
+  struct proc *p;
+  int havekids, pid;
+
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for zombie children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc)
+        continue;
+      if (p->pgdir != curproc->pgdir)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE && p->threadcount == 0){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        *stack = p->stack;
+        p->stack = 0;
+        p->threadcount = 0;
+        curproc->threadcount -= 1;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+
 }
